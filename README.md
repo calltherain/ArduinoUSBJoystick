@@ -9,11 +9,15 @@ http://lufa-lib.googlecode.com/files/LUFA-111009.zip
 Extract the zip file and put it under the project's root directory
 the dir tree  should like this:
 
-/
-  /firmwares
-  /LUFA
-  README.md
-  LICENSE
+
+<pre>
+    /firmwares
+    /LUFA
+    README.md
+    LICENSE
+</pre>
   
-  
-go to /firmwares/cvpJoystickTest and execute make
+go to /firmwares/cvpJoystickTest and execute 
+<pre>
+make
+</pre>
