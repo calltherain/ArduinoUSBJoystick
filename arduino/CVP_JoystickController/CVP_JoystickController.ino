@@ -1,7 +1,3 @@
-/* Arduino USB Joystick HID demo */
-/* Author: Darran Hunt, 
-*/
-
 /* 
 Mega2560 R3, digitalPin 22~ 37 used as row0 ~ row 15, 
 digital pin 38~53 used as column 0 ~ 15,
@@ -97,7 +93,7 @@ void setup()
 // Send an HID report to the USB interface
 void sendJoyReport(struct joyReport_t *report)
 {
-	//check if time has elapsed more then 5mS since last report sent.
+	//check if time has elapsed enough time since last report sent.
 	long static prevMillis;
 	if ( millis() - prevMillis >= 10 )
 	{
@@ -112,63 +108,67 @@ void sendJoyReport(struct joyReport_t *report)
 	}
 }
 
-char oldMsg[10];
-
 void loop() 
 {
 	//Serial.println( millis() - loopTime );
 	//loopTime = millis();
 
 	//scan rotary encoder
+
+	PORTC = 0xFF;
 	for ( int rowid = 0; rowid < 4; rowid ++ )
 	{
-		//turn off all rows first
-		PORTA = 0xFF;  PORTC = 0xFF;
 		//turn on the current row
-		PORTA &= ~(0x1 << rowid);
+		PORTA = ~( B00000001 << rowid);
+
+		//we must have such a delay so the digital pin output can go LOW steadily, 
+		//without this delay, the row PIN will not 100% at LOW during yet,
+		//so check the first column pin's value will return incorrect result.
+		delayMicroseconds(3);
 
 		byte colResult[16];
 
-		//	//pin 38, PD7
-		//	colResult[0] = (PIND & B10000000 )== 0 ? 1 : 0;
-		//	//pin 39, PG2
-		//	colResult[1] = (PING & B00000100 )== 0 ? 1 : 0;
-		//	//pin 40, PG1
-		//	colResult[2] = (PING & B00000010 )== 0 ? 1 : 0;
-		//	//pin 41, PG0
-		//	colResult[3] = (PING & B00000001 )== 0 ? 1 : 0;
+			//pin 38, PD7
+			colResult[0] = (PIND & B10000000 )== 0 ? 1 : 0;
+			//pin 39, PG2
+			colResult[1] = (PING & B00000100 )== 0 ? 1 : 0;
+			//pin 40, PG1
+			colResult[2] = (PING & B00000010 )== 0 ? 1 : 0;
+			//pin 41, PG0
+			colResult[3] = (PING & B00000001 )== 0 ? 1 : 0;
 
-		//	//pin 42, PL7
-		//	colResult[4] = (PINL & B10000000 )== 0 ? 1 : 0;
-		//	//pin 43, PL6
-		//	colResult[5] = (PINL & B01000000 )== 0 ? 1 : 0;
-		//	//pin 44, PL5
-		//	colResult[6] = (PINL & B00100000 )== 0 ? 1 : 0;
-		//	//pin 45, PL4
-		//	colResult[7] = (PINL & B00010000 )== 0 ? 1 : 0;
+			//pin 42, PL7
+			colResult[4] = (PINL & B10000000 )== 0 ? 1 : 0;
+			//pin 43, PL6
+			colResult[5] = (PINL & B01000000 )== 0 ? 1 : 0;
+			//pin 44, PL5
+			colResult[6] = (PINL & B00100000 )== 0 ? 1 : 0;
+			//pin 45, PL4
+			colResult[7] = (PINL & B00010000 )== 0 ? 1 : 0;
 
-		//	//pin 46, PL3
-		//	colResult[8] = (PINL & B00001000 )== 0 ? 1 : 0;
-		//	//pin 47, PL2
-		//	colResult[9] = (PINL & B00000100 )== 0 ? 1 : 0;
-		//	//pin 48, PL1
-		//	colResult[10] =( PINL & B00000010)== 0 ? 1 : 0;
-		//	//pin 49, PL0
-		//	colResult[11] =( PINL & B00000001)== 0 ? 1 : 0;
+			//pin 46, PL3
+			colResult[8] = (PINL & B00001000 )== 0 ? 1 : 0;
+			//pin 47, PL2
+			colResult[9] = (PINL & B00000100 )== 0 ? 1 : 0;
+			//pin 48, PL1
+			colResult[10] =( PINL & B00000010)== 0 ? 1 : 0;
+			//pin 49, PL0
+			colResult[11] =( PINL & B00000001)== 0 ? 1 : 0;
 
-		//	//pin 50, PB3
-		//	colResult[12] =( PINB & B00001000)== 0 ? 1 : 0;
-		//	//pin 51, PB2
-		//	colResult[13] =( PINB & B00000100)== 0 ? 1 : 0;
-		//	//pin 52, PB1
-		//	colResult[14] =( PINB & B00000010)== 0 ? 1 : 0;
-		//	//pin 53, PB0
-		//	colResult[15] =( PINB & B00000001)== 0 ? 1 : 0;
+			//pin 50, PB3
+			colResult[12] =( PINB & B00001000)== 0 ? 1 : 0;
+			//pin 51, PB2
+			colResult[13] =( PINB & B00000100)== 0 ? 1 : 0;
+			//pin 52, PB1
+			colResult[14] =( PINB & B00000010)== 0 ? 1 : 0;
+			//pin 53, PB0
+			colResult[15] =( PINB & B00000001)== 0 ? 1 : 0;
+
 
 		for ( int colid = 0; colid < 16; colid += 2 )
 		{
-			//byte encoderValue = colResult[colid] << 1 | colResult[colid + 1];
-			byte encoderValue = digitalRead(colid+38) << 1 | digitalRead(colid + 39);
+			byte encoderValue = colResult[colid] << 1 | colResult[colid + 1];
+			//byte encoderValue = digitalRead(colid+38) << 1 | digitalRead(colid + 39);
 			byte encoderId = rowid * 8 + colid / 2;
 			//int encoderState = encoderTable[ prevEncoderValue[ encoderId ] << 2 | encoderValue ];
 
@@ -224,20 +224,23 @@ void loop()
 		}
 	}
 
+	//turn off all rows first
 	for ( int rowid = 4; rowid < 16; rowid ++ )
 	{
-		//turn off all rows first
-		PORTA = 0xFF;  PORTC = 0xFF;
 		//turn on the current row
 		if (rowid < 8)
 		{
-			PORTA &= ~(0x1 << rowid);
+			PORTA = ~(0x1 << rowid);
 		}
 		else
 		{
-			PORTC &= ~(0x1 << (16 - rowid) );
+			PORTC = ~(0x1 << (15 - rowid) );
 		}
-		//digitalWrite( rowid + 22, LOW );
+		//we must have such a delay so the digital pin output can go LOW steadily, 
+		//without this delay, the row PIN will not 100% at LOW during yet,
+		//so check the first column pin's value will return incorrect result.
+		delayMicroseconds(3);
+
 		byte colResult[16];
 		//pin 38, PD7
 		colResult[0] = (PIND & B10000000)== 0 ? 1 : 0;
@@ -278,7 +281,7 @@ void loop()
 		for ( int colid = 0; colid < 16; colid ++ )
 		{
 			if ( colResult[ colid ] == 1 )
-				//if ( digitalRead( colid + 38 ) == HIGH )
+			//if ( digitalRead( colid + 38 ) == LOW )
 			{
 				joyReport.button[ rowid * 2 + colid / 8 ] |= (0x1 << ( colid % 8 ));
 			}
@@ -289,7 +292,6 @@ void loop()
 		}
 	}
 
-	/* Move all of the axes */
 	for (uint8_t ind=0; ind< NUM_AXES; ind++) {
 		//joyReport.axis[ind] = map(analogRead(54+ind), 0, 1023, -32768,32767 );
 	}
