@@ -51,7 +51,7 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM Joystick1Report[] =
 	0xa1, 0x01,          /* Collection (Application)                           */
 	0x09, 0x01,          /*   Usage (Pointer)                                  */
 
-	/* 8 axes, signed 16 bit resolution, range -32768 to 32767 (16 bytes) */
+	/* 8 axes, signed 16 bit resolution, the actualy resolution is still 10 bit range 0~65535  */
 	0xa1, 0x00,          /*   Collection (Physical)                            */
 	0x05, 0x01,          /*     Usage Page (Generic Desktop)                   */
 	0x09, 0x30,          /*     Usage (X)                                      */
@@ -69,7 +69,7 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM Joystick1Report[] =
 	0x81, 0x82,          /*     Input (Data, Variable, Absolute, Volatile)     */
 	0xc0,                /*   End Collection                                   */
 
-	/* 248 buttons, value 0=off, 1=on (6 bytes) */
+	/* 128 buttons, value 0=off, 1=on */
 	0x05, 0x09,          /*   Usage Page (Button)                              */
 	0x19, 1,             /*     Usage Minimum (Button 1)                       */
 	0x29, 128,            /*     Usage Maximum (Button 128 )                      */
@@ -125,7 +125,6 @@ const USB_Descriptor_Device_t PROGMEM DeviceDescriptor =
 		
 	.ManufacturerStrIndex   = 0x01,
 	.ProductStrIndex        = 0x02,
-	//.SerialNumStrIndex      = NO_DESCRIPTOR,
 	.SerialNumStrIndex      = 0x03,
 		
 	.NumberOfConfigurations = FIXED_NUM_CONFIGURATIONS
@@ -185,8 +184,8 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			
 			.EndpointAddress        = (ENDPOINT_DIR_IN | JOYSTICK1_EPNUM),
 			.Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-			.EndpointSize           = JOYSTICK_EPSIZE,
-			.PollingIntervalMS      = 0x05
+			.EndpointSize           = 32,
+			.PollingIntervalMS      = 0x02
 	},
 
 	.HID_Interface2 = 
@@ -221,8 +220,8 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			
 			.EndpointAddress        = (ENDPOINT_DIR_IN | JOYSTICK2_EPNUM),
 			.Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-			.EndpointSize           = JOYSTICK_EPSIZE,
-			.PollingIntervalMS      = 0x05
+			.EndpointSize           = 32,
+			.PollingIntervalMS      = 0x02
 	},
 
 };
@@ -255,17 +254,17 @@ const USB_Descriptor_String_t PROGMEM ManufacturerString =
  */
 const USB_Descriptor_String_t PROGMEM ProductString =
 {
-	.Header                 = {.Size = USB_STRING_LEN(25), .Type = DTYPE_String},
+	.Header                 = {.Size = USB_STRING_LEN(14), .Type = DTYPE_String},
 		
-	.UnicodeString          = L"C.V.P Joystick Controller"
+	.UnicodeString          = L"C.V.P Joystick"
 };
 
 /* Serial Number */
 const USB_Descriptor_String_t PROGMEM SerialNumberString =
 {
-	.Header                 = {.Size = USB_STRING_LEN(20), .Type = DTYPE_String},
+	.Header                 = {.Size = USB_STRING_LEN(2), .Type = DTYPE_String},
 		
-	.UnicodeString          = L"Composite Controller"
+	.UnicodeString          = L"C2"
 };
 /** This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
  *  documentation) by the application code so that the address and size of a requested descriptor can be given
@@ -316,9 +315,6 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 			
 			break;
 		case HID_DTYPE_HID: 
-			//switch( wIndex )
-			//{
-			//	case 0x00:
 			if ( wIndex == 0 )
 			{
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick1HID;
@@ -327,28 +323,22 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 			}
 			else
 			{
-			//case 0x01:
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick2HID;
 				Size    = sizeof(USB_HID_Descriptor_HID_t);
 				break;
 			}
-			//}
 			break;
 		case HID_DTYPE_Report: 
-			//switch( wIndex )
-			//{
-			//	case 0x00:
 			if( wIndex == 0 )
 			{
-					Address = (void*)&Joystick1Report;
-					Size    = sizeof(Joystick1Report);
-					break;
+				Address = (void*)&Joystick1Report;
+				Size    = sizeof(Joystick1Report);
+				break;
 			}else
 			{
-			//	case 0x01:
-					Address = (void*)&Joystick2Report;
-					Size    = sizeof(Joystick2Report);
-					break;
+				Address = (void*)&Joystick2Report;
+				Size    = sizeof(Joystick2Report);
+				break;
 			}
 			break;
 	}

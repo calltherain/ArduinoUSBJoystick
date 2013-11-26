@@ -98,16 +98,17 @@ USB_ClassInfo_HID_Device_t Joystick2_HID_Interface = {
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
  */
+uint16_t joy1DataSize = sizeof(USB_Joystick1Report_Data_t);
+uint16_t joy2DataSize = sizeof(USB_Joystick2Report_Data_t);
 
 /** Circular buffer to hold data from the serial port before it is sent to the host. */
 RingBuffer_t USARTtoUSB_Buffer;
-uint8_t USARTtoUSB_BufferStorage[ JOYSTICK_EPSIZE * 5 ];
+//uint8_t USARTtoUSB_BufferStorage[ JOYSTICK_EPSIZE * 3 ];
+uint8_t USARTtoUSB_BufferStorage[ sizeof(USB_Joystick1Report_Data_t ) + sizeof( USB_Joystick2Report_Data_t) ];
 
 USB_Joystick1Report_Data_t joy1Report;
 USB_Joystick2Report_Data_t joy2Report;
 
-uint16_t joy1DataSize = sizeof(USB_Joystick1Report_Data_t);
-uint16_t joy2DataSize = sizeof(USB_Joystick2Report_Data_t);
 
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
@@ -136,7 +137,6 @@ void SetupHardware(void)
 
     /* Hardware Initialization */
     Serial_Init(115200, true);
-    LEDs_Init();
     USB_Init();
 
     UCSR1B = ((1 << RXCIE1) | (1 << TXEN1) | (1 << RXEN1));
@@ -156,15 +156,15 @@ void EVENT_USB_Device_Disconnect(void)
 /** Event handler for the library USB Configuration Changed event. */
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
-     Endpoint_ConfigureEndpoint(JOYSTICK1_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
-                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
+//     Endpoint_ConfigureEndpoint(JOYSTICK1_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
+//                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
+//
+//     Endpoint_ConfigureEndpoint(JOYSTICK2_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
+//                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
 
-     Endpoint_ConfigureEndpoint(JOYSTICK2_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
-                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
 
-
-//    HID_Device_ConfigureEndpoints(&Joystick1_HID_Interface);
-//    HID_Device_ConfigureEndpoints(&Joystick2_HID_Interface);
+    HID_Device_ConfigureEndpoints(&Joystick1_HID_Interface);
+    HID_Device_ConfigureEndpoints(&Joystick2_HID_Interface);
 //
     USB_Device_EnableSOFEvents();
 }
@@ -273,13 +273,13 @@ void Joystick2_Task(void)
         //prepare the data
 	PrepareReportData();
 
-        /* Select the Mouse Report Endpoint */
+        /* Select the Joystick2 Report Endpoint */
         Endpoint_SelectEndpoint(JOYSTICK2_EPNUM);
 
-        /* Check if Mouse Endpoint Ready for Read/Write */
+        /* Check if Joystick2 Endpoint Ready for Read/Write */
         if (Endpoint_IsReadWriteAllowed())
         {
-                /* Write Mouse Report Data */
+                /* Write Joystick2 Report Data */
                 Endpoint_Write_Stream_LE(&joy2Report, joy2DataSize, NULL);
 
                 /* Finalize the stream transfer to send the last packet */
@@ -315,7 +315,7 @@ ISR(USART1_RX_vect, ISR_BLOCK)
 {
     uint8_t ReceivedByte = UDR1;
 
-    if ( (USB_DeviceState == DEVICE_STATE_Configured) && !RingBuffer_IsFull(&USARTtoUSB_Buffer) ) 
+    //if ( (USB_DeviceState == DEVICE_STATE_Configured) && !RingBuffer_IsFull(&USARTtoUSB_Buffer) ) 
     {
 	RingBuffer_Insert(&USARTtoUSB_Buffer, ReceivedByte);
     }
