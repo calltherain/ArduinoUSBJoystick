@@ -111,7 +111,7 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = Arduino-big-joystick
+TARGET = cvpJoystick
 
 
 # Object files directory
@@ -131,7 +131,7 @@ LUFA_OPTS += -D FIXED_NUM_CONFIGURATIONS=1
 LUFA_OPTS += -D USE_FLASH_DESCRIPTORS
 LUFA_OPTS += -D DEVICE_STATE_AS_GPIOR=0
 LUFA_OPTS += -D USE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
-#LUFA_OPTS += -D NO_DEVICE_SELF_POWER
+LUFA_OPTS += -D NO_DEVICE_SELF_POWER
 LUFA_OPTS += -D NO_DEVICE_REMOTE_WAKEUP
 LUFA_OPTS += -D NO_INTERNAL_SERIAL
 LUFA_OPTS += -D F_USB=$(F_USB)
@@ -590,53 +590,53 @@ dfu-ee: $(TARGET).hex $(TARGET).eep
 # Generate avr-gdb config/init file which does the following:
 #     define the reset signal, load the target file, connect to target, and set 
 #     a breakpoint at main().
-gdb-config: 
-	@$(REMOVE) $(GDBINIT_FILE)
-	@echo define reset >> $(GDBINIT_FILE)
-	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
-	@echo end >> $(GDBINIT_FILE)
-	@echo file $(TARGET).elf >> $(GDBINIT_FILE)
-	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
-ifeq ($(DEBUG_BACKEND),simulavr)
-	@echo load  >> $(GDBINIT_FILE)
-endif
-	@echo break main >> $(GDBINIT_FILE)
-
-debug: gdb-config $(TARGET).elf
-ifeq ($(DEBUG_BACKEND), avarice)
-	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
-	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
-	$(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
-	@$(WINSHELL) /c pause
-
-else
-	@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
-	$(DEBUG_MFREQ) --port $(DEBUG_PORT)
-endif
-	@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
+#gdb-config: 
+#	@$(REMOVE) $(GDBINIT_FILE)
+#	@echo define reset >> $(GDBINIT_FILE)
+#	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
+#	@echo end >> $(GDBINIT_FILE)
+#	@echo file $(TARGET).elf >> $(GDBINIT_FILE)
+#	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
+#ifeq ($(DEBUG_BACKEND),simulavr)
+#	@echo load  >> $(GDBINIT_FILE)
+#endif
+#	@echo break main >> $(GDBINIT_FILE)
+#
+#debug: gdb-config $(TARGET).elf
+#ifeq ($(DEBUG_BACKEND), avarice)
+#	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
+#	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
+#	$(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
+#	@$(WINSHELL) /c pause
+#
+#else
+#	@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
+#	$(DEBUG_MFREQ) --port $(DEBUG_PORT)
+#endif
+#	@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
 
 
 
 
 # Convert ELF to COFF for use in debugging / simulating in AVR Studio or VMLAB.
-COFFCONVERT = $(OBJCOPY) --debugging
-COFFCONVERT += --change-section-address .data-0x800000
-COFFCONVERT += --change-section-address .bss-0x800000
-COFFCONVERT += --change-section-address .noinit-0x800000
-COFFCONVERT += --change-section-address .eeprom-0x810000
+#COFFCONVERT = $(OBJCOPY) --debugging
+#COFFCONVERT += --change-section-address .data-0x800000
+#COFFCONVERT += --change-section-address .bss-0x800000
+#COFFCONVERT += --change-section-address .noinit-0x800000
+#COFFCONVERT += --change-section-address .eeprom-0x810000
 
 
 
-coff: $(TARGET).elf
-	@echo
-	@echo $(MSG_COFF) $(TARGET).cof
-	$(COFFCONVERT) -O coff-avr $< $(TARGET).cof
-
-
-extcoff: $(TARGET).elf
-	@echo
-	@echo $(MSG_EXTENDED_COFF) $(TARGET).cof
-	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
+#coff: $(TARGET).elf
+#	@echo
+#	@echo $(MSG_COFF) $(TARGET).cof
+#	$(COFFCONVERT) -O coff-avr $< $(TARGET).cof
+#
+#
+#extcoff: $(TARGET).elf
+#	@echo
+#	@echo $(MSG_EXTENDED_COFF) $(TARGET).cof
+#	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
 
 
 

@@ -62,66 +62,18 @@
 #include "Arduino-joystick.h"
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
-uint8_t PrevJoystick1HIDReportBuffer[sizeof(USB_Joystick1Report_Data_t)];
-uint8_t PrevJoystick2HIDReportBuffer[sizeof(USB_Joystick2Report_Data_t)];
+//uint8_t PrevJoystick1HIDReportBuffer[sizeof(USB_Joystick1Report_Data_t)];
+//uint8_t PrevJoystick2HIDReportBuffer[sizeof(USB_Joystick2Report_Data_t)];
 
 /** LUFA HID Class driver interface configuration and state information. This structure is
  *  passed to all HID Class driver functions, so that multiple instances of the same class
  *  within a device can be differentiated from one another.
  */
-USB_ClassInfo_HID_Device_t Joystick1_HID_Interface = {
-    .Config = {
-	.InterfaceNumber              = 0,
-
-	.ReportINEndpointNumber = JOYSTICK1_EPNUM,
-	.ReportINEndpointSize = JOYSTICK_EPSIZE,
-	.ReportINEndpointDoubleBank = false,
-//	.ReportINEndpoint = 
-//	{
-//		.Address = JOYSTICK1_EPNUM,
-//		.Banks = 1,
-//		.Size = JOYSTICK_EPSIZE,
-//		.Type = EP_TYPE_INTERRUPT
-//	},
-
-	.PrevReportINBuffer           = PrevJoystick1HIDReportBuffer,
-	.PrevReportINBufferSize       = sizeof(PrevJoystick1HIDReportBuffer),
-    },
-};
-
-USB_ClassInfo_HID_Device_t Joystick2_HID_Interface = {
-    .Config = {
-	.InterfaceNumber              = 1,
-
-	.ReportINEndpointNumber = JOYSTICK2_EPNUM,
-	.ReportINEndpointSize = JOYSTICK_EPSIZE,
-	.ReportINEndpointDoubleBank = false,
-//	.ReportINEndpoint = 
-//	{
-//		.Address = JOYSTICK2_EPNUM,
-//		.Banks = 1,
-//		.Size = JOYSTICK_EPSIZE,
-//		.Type = EP_TYPE_INTERRUPT
-//	},
-
-	.PrevReportINBuffer           = PrevJoystick1HIDReportBuffer,
-	.PrevReportINBufferSize       = sizeof(PrevJoystick2HIDReportBuffer),
-    },
-};
-
-/** Main program entry point. This routine contains the overall program flow, including initial
- *  setup of all components and the main program loop.
- */
-uint16_t joy1DataSize = sizeof(USB_Joystick1Report_Data_t);
-uint16_t joy2DataSize = sizeof(USB_Joystick2Report_Data_t);
 
 /** Circular buffer to hold data from the serial port before it is sent to the host. */
 RingBuffer_t USARTtoUSB_Buffer;
-//uint8_t USARTtoUSB_BufferStorage[ JOYSTICK_EPSIZE * 3 ];
 uint8_t USARTtoUSB_BufferStorage[ sizeof(USB_Joystick1Report_Data_t ) + sizeof( USB_Joystick2Report_Data_t) ];
 
-USB_Joystick1Report_Data_t joy1Report;
-USB_Joystick2Report_Data_t joy2Report;
 
 void Joystick1_Task(void);
 void Joystick2_Task(void);
@@ -161,7 +113,6 @@ void SetupHardware(void)
 /** Event handler for the library USB Connection event. */
 void EVENT_USB_Device_Connect(void)
 {
-	//LEDs_SetAllLEDs(LEDMASK_USB_ENUMERATING);
 }
 
 /** Event handler for the library USB Disconnection event. */
@@ -172,17 +123,13 @@ void EVENT_USB_Device_Disconnect(void)
 /** Event handler for the library USB Configuration Changed event. */
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
-//     Endpoint_ConfigureEndpoint(JOYSTICK1_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
-//                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
-//
-//     Endpoint_ConfigureEndpoint(JOYSTICK2_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
-//                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
+     Endpoint_ConfigureEndpoint(JOYSTICK1_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
+                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
 
+     Endpoint_ConfigureEndpoint(JOYSTICK2_EPNUM, EP_TYPE_INTERRUPT, ENDPOINT_DIR_IN,
+                                                   JOYSTICK_EPSIZE, ENDPOINT_BANK_SINGLE);
 
-    HID_Device_ConfigureEndpoints(&Joystick1_HID_Interface);
-    HID_Device_ConfigureEndpoints(&Joystick2_HID_Interface);
-//
-    USB_Device_EnableSOFEvents();
+    //USB_Device_EnableSOFEvents();
 }
 
 /** Event handler for the library USB Unhandled Control Request event. */
@@ -195,8 +142,8 @@ void EVENT_USB_Device_UnhandledControlRequest(void)
 /** Event handler for the USB device Start Of Frame event. */
 void EVENT_USB_Device_StartOfFrame(void)
 {
-    HID_Device_MillisecondElapsed(&Joystick1_HID_Interface);
-    HID_Device_MillisecondElapsed(&Joystick2_HID_Interface);
+//    HID_Device_MillisecondElapsed(&Joystick1_HID_Interface);
+//    HID_Device_MillisecondElapsed(&Joystick2_HID_Interface);
 }
 
 
@@ -218,81 +165,47 @@ void EVENT_USB_Device_ControlRequest(void)
 	                switch (USB_ControlRequest.wIndex)
 			{
 			case 0:
-	                        ReportData = (uint8_t*)&joy1Report;
-	                        ReportSize = sizeof(joy1Report);
+	                        //ReportData = (uint8_t*)&joy1Report;
+				ReportData = USARTtoUSB_BufferStorage;
+	                        ReportSize = sizeof(USB_Joystick1Report_Data_t);
 				break;
 			case 1:
-	                        ReportData = (uint8_t*)&joy2Report;
-	                        ReportSize = sizeof(joy2Report);
+	                        //ReportData = (uint8_t*)&joy2Report;
+				ReportData = USARTtoUSB_BufferStorage + sizeof(USB_Joystick1Report_Data_t);
+	                        ReportSize = sizeof(USB_Joystick2Report_Data_t);
+				break;
+			
+			default:
+	                        ReportData = USARTtoUSB_BufferStorage;
+	                        ReportSize = sizeof(USB_Joystick1Report_Data_t);
 				break;
 			}
 	                /* Write the report data to the control endpoint */
 	                Endpoint_Write_Control_Stream_LE(ReportData, ReportSize);
 	                Endpoint_ClearOUT();
-	
-			//keep the report data so it can be reused.
 	        }
 	        break;
-	case HID_REQ_SetReport:
-        	if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
-        	{
-        	        Endpoint_ClearSETUP();
-
-        	        /* Wait until the LED report has been sent by the host */
-        	        while (!(Endpoint_IsOUTReceived()))
-        	        {
-        	                if (USB_DeviceState == DEVICE_STATE_Unattached)
-        	                  return;
-        	        }
-
-        	        Endpoint_ClearOUT();
-        	        Endpoint_ClearStatusStage();
-        	}
-        	break;
-// 	case HID_REQ_GetProtocol:
-//            if (USB_ControlRequest.bmRequestType == (REQDIR_DEVICETOHOST | REQTYPE_CLASS | REQREC_INTERFACE))
-//            {
-//                Endpoint_ClearSETUP();
-//
-//                Endpoint_Write_Byte(HIDInterfaceInfo->State.UsingReportProtocol);
-//                Endpoint_ClearIN();
-//
-//                Endpoint_ClearStatusStage();
-//            }
-//           
-//            break;
-//        case HID_REQ_SetProtocol:
-//            if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
-//            {
-//                Endpoint_ClearSETUP();
-//
-//                HIDInterfaceInfo->State.UsingReportProtocol = (USB_ControlRequest.wValue != 0x0000);
-//               
-//                Endpoint_ClearStatusStage();
-//            }
-//           
-//            break; 
-       }
+      }
 }
 
 // get the data from ringbuffer and save it to report buffer
-void PrepareReportData(void)
-{
-	//check the ring buffer data size
-	uint16_t BufferCount = RingBuffer_GetCount(&USARTtoUSB_Buffer);
-	/* If there's a new report from the Arduino, copy it to local variable for future use 
-	 If not then the last report will be reused
-	*/
-	if (BufferCount >= ( joy1DataSize + joy2DataSize ) ) {
-		uint16_t ind;
-		for (ind=0; ind < joy1DataSize; ind++) {
-		    ((uint8_t *)&joy1Report)[ind] = RingBuffer_Remove(&USARTtoUSB_Buffer);
-		}
-		for (ind=0; ind < joy2DataSize; ind++) {
-		    ((uint8_t *)&joy2Report)[ind] = RingBuffer_Remove(&USARTtoUSB_Buffer);
-		}
-	}
-}
+//void PrepareReportData(void)
+//{
+//	//check the ring buffer data size
+//	uint16_t BufferCount = RingBuffer_GetCount(&USARTtoUSB_Buffer);
+//	/* If there's a new report from the Arduino, copy it to local variable for future use 
+//	 If not then the last report will be reused
+//	*/
+//	if (BufferCount >= ( joy1DataSize + joy2DataSize ) ) {
+//		uint16_t ind;
+//		for (ind=0; ind < joy1DataSize; ind++) {
+//		    ((uint8_t *)&joy1Report)[ind] = RingBuffer_Remove(&USARTtoUSB_Buffer);
+//		}
+//		for (ind=0; ind < joy2DataSize; ind++) {
+//		    ((uint8_t *)&joy2Report)[ind] = RingBuffer_Remove(&USARTtoUSB_Buffer);
+//		}
+//	}
+//}
 
 void Joystick1_Task(void)
 {
@@ -301,7 +214,7 @@ void Joystick1_Task(void)
           return;
 
         //prepare the data
-	PrepareReportData();
+	//PrepareReportData();
 
         /* Select the Mouse Report Endpoint */
         Endpoint_SelectEndpoint(JOYSTICK1_EPNUM);
@@ -310,12 +223,10 @@ void Joystick1_Task(void)
         if (Endpoint_IsReadWriteAllowed())
         {
                 /* Write Mouse Report Data */
-                Endpoint_Write_Stream_LE(&joy1Report, joy1DataSize, NULL);
+                Endpoint_Write_Stream_LE( USARTtoUSB_BufferStorage, sizeof(USB_Joystick1Report_Data_t), NULL);
 
                 /* Finalize the stream transfer to send the last packet */
                 Endpoint_ClearIN();
-
-		//just keep the report data so it can be reused, 
         }
 }
 
@@ -326,7 +237,7 @@ void Joystick2_Task(void)
           return;
 
         //prepare the data
-	PrepareReportData();
+	//PrepareReportData();
 
         /* Select the Joystick2 Report Endpoint */
         Endpoint_SelectEndpoint(JOYSTICK2_EPNUM);
@@ -335,12 +246,10 @@ void Joystick2_Task(void)
         if (Endpoint_IsReadWriteAllowed())
         {
                 /* Write Joystick2 Report Data */
-                Endpoint_Write_Stream_LE(&joy2Report, joy2DataSize, NULL);
+                Endpoint_Write_Stream_LE(USARTtoUSB_BufferStorage + sizeof ( USB_Joystick1Report_Data_t), sizeof(USB_Joystick2Report_Data_t), NULL);
 
                 /* Finalize the stream transfer to send the last packet */
                 Endpoint_ClearIN();
-
-		//we just keep the report data so it can be reused, 
         }
 }
 

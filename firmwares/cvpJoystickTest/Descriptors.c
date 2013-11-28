@@ -147,7 +147,7 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			.ConfigurationNumber    = 1,
 			.ConfigurationStrIndex  = NO_DESCRIPTOR,
 				
-			.ConfigAttributes       = (USB_CONFIG_ATTR_BUSPOWERED ),
+			.ConfigAttributes       = (USB_CONFIG_ATTR_BUSPOWERED),
 			
 			.MaxPowerConsumption    = USB_CONFIG_POWER_MA(100)
 	},
@@ -285,57 +285,56 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 	switch (DescriptorType)
 	{
 		case DTYPE_Device:
-			Address = &DeviceDescriptor;
+			Address = (void*)&DeviceDescriptor;
 			Size    = sizeof(USB_Descriptor_Device_t);
 			break;
 		case DTYPE_Configuration: 
-			Address = &ConfigurationDescriptor;
+			Address = (void*)&ConfigurationDescriptor;
 			Size    = sizeof(USB_Descriptor_Configuration_t);
 			break;
 		case DTYPE_String: 
 			switch (DescriptorNumber)
 			{
 				case 0x00: 
-					Address = &LanguageString;
+					Address = (void*)&LanguageString;
 					Size    = pgm_read_byte(&LanguageString.Header.Size);
 					break;
 				case 0x01: 
-					Address = &ManufacturerString;
+					Address = (void*)&ManufacturerString;
 					Size    = pgm_read_byte(&ManufacturerString.Header.Size);
 					break;
 				case 0x02: 
-					Address = &ProductString;
+					Address = (void*)&ProductString;
 					Size    = pgm_read_byte(&ProductString.Header.Size);
 					break;
 				case 0x03:
-					Address = &SerialNumberString;
+					Address = (void*)&SerialNumberString;
 					Size 	= pgm_read_byte(&SerialNumberString.Header.Size);
 					break;
 			}
 			
 			break;
 		case HID_DTYPE_HID: 
-			if ( wIndex == 0 )
+			switch( wIndex )
 			{
+			case 0:
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick1HID;
 				Size    = sizeof(USB_HID_Descriptor_HID_t);
 				break;
-			}
-			else
-			{
+			case 1:
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick2HID;
 				Size    = sizeof(USB_HID_Descriptor_HID_t);
 				break;
 			}
 			break;
 		case HID_DTYPE_Report: 
-			if( wIndex == 0 )
+			switch( wIndex  )
 			{
+			case 0:
 				Address = (void*)&Joystick1Report;
 				Size    = sizeof(Joystick1Report);
 				break;
-			}else
-			{
+			case 1:
 				Address = (void*)&Joystick2Report;
 				Size    = sizeof(Joystick2Report);
 				break;
