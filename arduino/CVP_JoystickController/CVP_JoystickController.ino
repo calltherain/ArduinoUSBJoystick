@@ -234,6 +234,7 @@ void loop()
 		}
 		else
 		{
+			PORTA = 0xFF;
 			PORTC = ~(0x1 << (15 - rowid) );
 		}
 		//we must have such a delay so the digital pin output can go LOW steadily, 
