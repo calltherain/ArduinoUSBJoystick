@@ -50,7 +50,7 @@
 #include <LUFA/Drivers/Board/LEDs.h>
 #include <LUFA/Drivers/Peripheral/Serial.h>
 #include <LUFA/Drivers/USB/USB.h>
-#include <LUFA/Drivers/USB/Class/CDC.h>
+#include <LUFA/Drivers/USB/Class/CDCClass.h>
 #include <LUFA/Common/Common.h>
 
 /** Type define for the joystick HID report structure, for creating and sending HID reports to the host PC.

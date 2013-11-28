@@ -65,6 +65,7 @@
 MCU = atmega16u2
 MCU_AVRDUDE = at90usb82
 MCU_DFU = atmega16u2
+ARCH = AVR8
 # Specify the Arduino model using the assigned PID.  This is used by Descriptors.c
 #   to set PID and product descriptor string
 # Uno PID:
