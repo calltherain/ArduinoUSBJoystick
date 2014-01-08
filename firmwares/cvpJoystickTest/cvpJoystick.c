@@ -224,7 +224,7 @@ void Joystick1_Task(void)
         Endpoint_SelectEndpoint(ENDPOINT_DIR_IN | JOYSTICK1_EPNUM);
 
 	bool IdleElapsed = false;
-        /* Check if Mouse Endpoint Ready for Read/Write */
+        /* Check if idle time defined by HOST has elapsed*/
 	if (IdleCount > 0 && IdleRemaining == 0 )
 	{
 		//The idle time has elapsed,reset the idleRemaining
@@ -256,7 +256,7 @@ void Joystick2_Task(void)
         Endpoint_SelectEndpoint(ENDPOINT_DIR_IN | JOYSTICK2_EPNUM);
 
 	bool IdleElapsed = false;
-        /* Check if Mouse Endpoint Ready for Read/Write */
+        /* Check if idle time defined by HOST has elapsed*/
 	if (IdleCount > 0 && IdleRemaining == 0 )
 	{
 		//The idle time has elapsed,reset the idleRemaining

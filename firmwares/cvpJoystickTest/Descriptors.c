@@ -165,7 +165,7 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			.SubClass               = 0x00,
 			.Protocol               = HID_CSCP_NonBootProtocol,
 				
-			.InterfaceStrIndex      = NO_DESCRIPTOR
+			.InterfaceStrIndex      = 0x04
 	},
 
 	.HID_Joystick1HID = 
@@ -201,7 +201,7 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			.SubClass               = 0x00,
 			.Protocol               = HID_CSCP_NonBootProtocol,
 				
-			.InterfaceStrIndex      = NO_DESCRIPTOR
+			.InterfaceStrIndex      = 0x05
 	},
 
 	.HID_Joystick2HID = 
@@ -266,6 +266,23 @@ const USB_Descriptor_String_t PROGMEM SerialNumberString =
 		
 	.UnicodeString          = L"C2"
 };
+
+/* */
+const USB_Descriptor_String_t PROGMEM HID1InterfaceDescriptor=
+{
+	.Header                 = {.Size = USB_STRING_LEN(4), .Type = DTYPE_String},
+		
+	.UnicodeString          = L"001"
+};
+
+/* */
+const USB_Descriptor_String_t PROGMEM HID2InterfaceDescriptor=
+{
+	.Header                 = {.Size = USB_STRING_LEN(4), .Type = DTYPE_String},
+		
+	.UnicodeString          = L"002"
+};
+
 /** This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
  *  documentation) by the application code so that the address and size of a requested descriptor can be given
  *  to the USB library. When the device receives a Get Descriptor request on the control endpoint, this function
@@ -311,6 +328,15 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 					Address = (void*)&SerialNumberString;
 					Size 	= pgm_read_byte(&SerialNumberString.Header.Size);
 					break;
+				case 0x04:
+					Address = (void*)&HID1InterfaceDescriptor;
+					Size 	= pgm_read_byte(&HID1InterfaceDescriptor.Header.Size);
+					break;
+				case 0x05:
+					Address = (void*)&HID2InterfaceDescriptor;
+					Size 	= pgm_read_byte(&HID2InterfaceDescriptor.Header.Size);
+					break;
+
 			}
 			
 			break;
