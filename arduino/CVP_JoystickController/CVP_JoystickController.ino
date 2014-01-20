@@ -6,6 +6,7 @@ it's a 16 * 16  matrix,
 row 0, 1, 2 ,3 will be used to support 32 rotary encoder
 row 4, 5 will be used to support 16 On - off - On toggle switches, 
 note: this application will make the On-off-on toggle switch generate a button push signal when toggle from On to off, 
+but  this is not implemented yet
 for normal on- on toggle switch or if you don't need this feature then just plug the switch to push button area
 row 6~15 will be used to support push button or normal on-on toggle switch
 */
