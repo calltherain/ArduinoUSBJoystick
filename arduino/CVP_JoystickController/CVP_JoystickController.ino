@@ -19,7 +19,10 @@ typedef struct joyReport_t {
 	uint8_t button[(NUM_BUTTONS+7)/8]; // 8 buttons per byte
 };
 
+const unsigned int ScanDelay = 4;
+
 joyReport_t joyReport;
+joyReport_t prevjoyReport;
 
 /*
 RotaryEncoder
@@ -31,13 +34,18 @@ CW >>>  00 01 11 10    <<< CCW
 this value sets the threshold for the CW/CCW drift in milliseconds
 any direction drift within this time limit will be ignored, the previous direction will be used.
 */
-byte CWCCWDriftTimeLimit = 60;
+byte CWCCWDriftTimeLimit = 20;
 
 //totally 32 rotary encoders, 
 const byte ENCODER_COUNT = 32;
 
+
 //store the rotary encoder's AB pin value in last scan
 byte prevEncoderValue[ENCODER_COUNT];
+
+//store the delay counter for each encoder
+byte EncoderPulseDelayCounter[ ENCODER_COUNT * 2];
+byte StateDelayLength = 30;
 
 //store the rotary encoder's last effective CW/ CCW state
 int prevEncoderDirection[ENCODER_COUNT];
@@ -48,8 +56,12 @@ int prevEncoderDirection[ENCODER_COUNT];
 // if it's CW or CCW, reset stage to 0
 byte EncoderState[ENCODER_COUNT];
 
-const byte CWPattern1 = B00011110, CWPattern2 = B01111000, CWPattern3 = B11100001, CWPattern4 = B10000111;
-const byte CCWPattern1 = B00101101, CCWPattern2 = B10110100, CCWPattern3 = B11010010, CCWPattern4 = B01001110;
+//const byte CWPattern1 = B00011110, CWPattern2 = B01111000, CWPattern3 = B11100001, CWPattern4 = B10000111;
+//const byte CCWPattern1 = B00101101, CCWPattern2 = B10110100, CCWPattern3 = B11010010, CCWPattern4 = B01001110;
+const byte CWPattern1 = B00000001, CWPattern2 = B00000111, CWPattern3 = B00001110, CWPattern4 = B00001000;
+const byte CCWPattern1 = B00000010, CCWPattern2 = B00001011, CCWPattern3 = B00001101, CCWPattern4 = B00000100;
+//const byte CWCCWCompareMask = B11111111;
+const byte CWCCWCompareMask = B00001111;
 
 //store the rotary encoder's last pulse time, this will be used to remove the drift effect
 unsigned long prevEncoderMillis[ENCODER_COUNT];
@@ -96,17 +108,17 @@ void sendJoyReport(struct joyReport_t *report)
 {
 	//check if time has elapsed enough time since last report sent.
 	long static prevMillis;
-	if ( millis() - prevMillis >= 10 )
-	{
-		Serial.write((uint8_t *)report, sizeof(joyReport_t));
-
-		//clear the pulse buttons state
-		for( int i = 0; i < 8; i ++ )
+	//if ( millis() - prevMillis >= 10 )
+	//{
+		if (memcmp( report, &prevjoyReport, sizeof( joyReport_t ) ) != 0)
 		{
-			joyReport.button[i] = 0;
+			Serial.write((uint8_t *)report, sizeof(joyReport_t));
+			memcpy ( &prevjoyReport, report, sizeof( joyReport_t ) );
 		}
-		prevMillis = millis();
-	}
+
+//	Serial.println( millis() - prevMillis );
+	//	prevMillis = millis();
+	//}
 }
 
 void loop() 
@@ -123,48 +135,47 @@ void loop()
 		PORTA = ~( B00000001 << rowid);
 
 		//we must have such a delay so the digital pin output can go LOW steadily, 
-		//without this delay, the row PIN will not 100% at LOW during yet,
+		//without this delay, the row PIN will not 100% at LOW during the scan,
 		//so check the first column pin's value will return incorrect result.
-		delayMicroseconds(3);
+		delayMicroseconds(ScanDelay);
 
 		byte colResult[16];
 
-			//pin 38, PD7
-			colResult[0] = (PIND & B10000000 )== 0 ? 1 : 0;
-			//pin 39, PG2
-			colResult[1] = (PING & B00000100 )== 0 ? 1 : 0;
-			//pin 40, PG1
-			colResult[2] = (PING & B00000010 )== 0 ? 1 : 0;
-			//pin 41, PG0
-			colResult[3] = (PING & B00000001 )== 0 ? 1 : 0;
+		//pin 38, PD7
+		colResult[0] = (PIND & B10000000 )== 0 ? 1 : 0;
+		//pin 39, PG2
+		colResult[1] = (PING & B00000100 )== 0 ? 1 : 0;
+		//pin 40, PG1
+		colResult[2] = (PING & B00000010 )== 0 ? 1 : 0;
+		//pin 41, PG0
+		colResult[3] = (PING & B00000001 )== 0 ? 1 : 0;
 
-			//pin 42, PL7
-			colResult[4] = (PINL & B10000000 )== 0 ? 1 : 0;
-			//pin 43, PL6
-			colResult[5] = (PINL & B01000000 )== 0 ? 1 : 0;
-			//pin 44, PL5
-			colResult[6] = (PINL & B00100000 )== 0 ? 1 : 0;
-			//pin 45, PL4
-			colResult[7] = (PINL & B00010000 )== 0 ? 1 : 0;
+		//pin 42, PL7
+		colResult[4] = (PINL & B10000000 )== 0 ? 1 : 0;
+		//pin 43, PL6
+		colResult[5] = (PINL & B01000000 )== 0 ? 1 : 0;
+		//pin 44, PL5
+		colResult[6] = (PINL & B00100000 )== 0 ? 1 : 0;
+		//pin 45, PL4
+		colResult[7] = (PINL & B00010000 )== 0 ? 1 : 0;
 
-			//pin 46, PL3
-			colResult[8] = (PINL & B00001000 )== 0 ? 1 : 0;
-			//pin 47, PL2
-			colResult[9] = (PINL & B00000100 )== 0 ? 1 : 0;
-			//pin 48, PL1
-			colResult[10] =( PINL & B00000010)== 0 ? 1 : 0;
-			//pin 49, PL0
-			colResult[11] =( PINL & B00000001)== 0 ? 1 : 0;
+		//pin 46, PL3
+		colResult[8] = (PINL & B00001000 )== 0 ? 1 : 0;
+		//pin 47, PL2
+		colResult[9] = (PINL & B00000100 )== 0 ? 1 : 0;
+		//pin 48, PL1
+		colResult[10] =( PINL & B00000010)== 0 ? 1 : 0;
+		//pin 49, PL0
+		colResult[11] =( PINL & B00000001)== 0 ? 1 : 0;
 
-			//pin 50, PB3
-			colResult[12] =( PINB & B00001000)== 0 ? 1 : 0;
-			//pin 51, PB2
-			colResult[13] =( PINB & B00000100)== 0 ? 1 : 0;
-			//pin 52, PB1
-			colResult[14] =( PINB & B00000010)== 0 ? 1 : 0;
-			//pin 53, PB0
-			colResult[15] =( PINB & B00000001)== 0 ? 1 : 0;
-
+		//pin 50, PB3
+		colResult[12] =( PINB & B00001000)== 0 ? 1 : 0;
+		//pin 51, PB2
+		colResult[13] =( PINB & B00000100)== 0 ? 1 : 0;
+		//pin 52, PB1
+		colResult[14] =( PINB & B00000010)== 0 ? 1 : 0;
+		//pin 53, PB0
+		colResult[15] =( PINB & B00000001)== 0 ? 1 : 0;
 
 		for ( int colid = 0; colid < 16; colid += 2 )
 		{
@@ -173,19 +184,25 @@ void loop()
 			byte encoderId = rowid * 8 + colid / 2;
 			//int encoderState = encoderTable[ prevEncoderValue[ encoderId ] << 2 | encoderValue ];
 
+			int direction = 0;
 			if ( encoderValue != prevEncoderValue[encoderId]  )
 			{
 				//we have a "pulse" from rotary encoder
-				int direction = 0;
-				EncoderState[encoderId] = EncoderState[encoderId] << 2 | encoderValue;
+				EncoderState[encoderId] = (EncoderState[encoderId] << 2) | encoderValue;
 
-				if (EncoderState[encoderId] == CWPattern1  || EncoderState[encoderId] == CWPattern3 )
+				if ((EncoderState[encoderId] & CWCCWCompareMask) == CWPattern1  
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CWPattern3 
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CWPattern2  
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CWPattern4)
 				{
 					//this is a full CW pattern,
 					direction = 1;
 					//EncoderState[encoderId] = 0;
 				}
-				else if (EncoderState[encoderId] == CCWPattern1  || EncoderState[encoderId] == CCWPattern3 )
+				else if ((EncoderState[encoderId] & CWCCWCompareMask)== CCWPattern1  
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CCWPattern3 
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CCWPattern2  
+					|| (EncoderState[encoderId] & CWCCWCompareMask) == CCWPattern4)
 				{
 					//this is a full CCW pattern,
 					direction = -1;
@@ -197,6 +214,7 @@ void loop()
 				if ( timeDiff < CWCCWDriftTimeLimit && direction != 0 )
 				{
 					// we get a CW/CCW in less then a very short time, let's check if the current direction is identical with the previous direction
+
 					if ( prevEncoderDirection[encoderId] != direction && prevEncoderDirection[encoderId] != 0 )
 					{
 						//the current direction is different with the previous one, let's use the previous direction instead
@@ -206,22 +224,79 @@ void loop()
 
 				if ( direction == 1 )
 				{
-					//set bit to 10
-					joyReport.button[ rowid * 2 + colid / 8 ] |= 0x1 << ( colid % 8 + 1);
-					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 ));
+					//set bit to 10, so we can lenghten the "pressed" state for some loops 
+					if ( EncoderPulseDelayCounter[ encoderId * 2 + 1] == 0 ) 
+					{	//start/restart the delay counter on the encoder
+						EncoderPulseDelayCounter[ encoderId * 2 + 1] = 1;
+						EncoderPulseDelayCounter[ encoderId * 2 ] = 0;
+					}
 					prevEncoderMillis[ encoderId ] = millis();
 					prevEncoderDirection[ encoderId ] = direction;
 				}
 				else if ( direction == -1 )
 				{
-					//set bit to 01
-					joyReport.button[ rowid * 2  + colid / 8 ] &= ~(0x1 << ( colid % 8 + 1));
-					joyReport.button[ rowid * 2 + colid / 8 ] |= 0x1 << ( colid % 8 );
+					//set bit to 01, so we can lenghten the "pressed" state for some loops
+					if ( EncoderPulseDelayCounter[ encoderId * 2 ] == 0 ) 
+					{	//start/restart the delay counter on the encoder
+						EncoderPulseDelayCounter[ encoderId * 2 + 1 ] = 0;
+						EncoderPulseDelayCounter[ encoderId * 2 ] = 1;
+					}
 					prevEncoderMillis[ encoderId ] = millis();
 					prevEncoderDirection[ encoderId ] = direction;
+				}	//end of direction judgement
+			}
+		
+			/*  lengthen the press state for some loop
+				If we don't lenthen the press state for several loop it seems that Windows ( Not tested on linux so far ) 
+				can miss some "pulses" from the rotary encoder, each round of the loop costs 3~5ms, so a "pulse" is only valid for 3~5ms
+				maybe this time span is too short for windows to recognize.
+				Some talks: 
+				http://forums.eagle.ru/showpost.php?p=2197399&postcount=65
+				http://forums.eagle.ru/showpost.php?p=2198566&postcount=67
+
+				The code below will try to keep the "pulse" high for some loops. It's based on 64 counters( we have 32 encoders and 
+				each encoder has 2 counters), if we found a CW/CCW pulse from encoder then we set the corresponding counter to 1,
+				then we keep the button press bit in Joystick report to 1 and add the counter in each loop, 
+				until the counter is reach the predefined limit we reset the counter to 0 and reset the button press bit in joystick report to 0.
+			*/
+			if ( EncoderPulseDelayCounter[encoderId * 2 + 1] > 0)
+			{
+				//CW
+				//add the counter
+				EncoderPulseDelayCounter[ encoderId * 2 + 1]++;
+				if ( EncoderPulseDelayCounter[ encoderId * 2 + 1] >=  StateDelayLength)
+				{	//we have keep the key-press state long enough so reset the bit to 00
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 + 1 ));
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 ));
+					//reset the counter to 0
+					EncoderPulseDelayCounter[ encoderId * 2 + 1] = 0;
+					//Serial.println( "counter reset");
+				}
+				else
+				{	//the press time is not long enough, keep the bit to 10
+					joyReport.button[ rowid * 2 + colid / 8 ] |= 0x1 << ( colid % 8 + 1);
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 ));
+					//Serial.println( EncoderPulseDelayCounter[ encoderId * 2 + 1] );
 				}
 			}
-
+			else if ( EncoderPulseDelayCounter[ encoderId * 2 ] > 0 ) 
+			{
+				//CCW
+				//add the counter
+				EncoderPulseDelayCounter[ encoderId * 2 ]++;
+				if ( EncoderPulseDelayCounter[ encoderId * 2 ] >= StateDelayLength)
+				{	//we have keep the key-press state long enough so reset the bit to 00
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 + 1));
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 ));
+					//reset the counter to 0
+					EncoderPulseDelayCounter[ encoderId * 2 ] = 0;
+				}
+				else
+				{	//the press time is not long enough, keep set bit to 01
+					joyReport.button[ rowid * 2 + colid / 8 ] &= ~(0x1 << ( colid % 8 + 1));
+					joyReport.button[ rowid * 2 + colid / 8 ] |= 0x1 << ( colid % 8 );
+				}
+			}
 		}
 	}
 
@@ -241,7 +316,7 @@ void loop()
 		//we must have such a delay so the digital pin output can go LOW steadily, 
 		//without this delay, the row PIN will not 100% at LOW during yet,
 		//so check the first column pin's value will return incorrect result.
-		delayMicroseconds(3);
+		delayMicroseconds(ScanDelay);
 
 		byte colResult[16];
 		//pin 38, PD7
@@ -298,4 +373,5 @@ void loop()
 		//joyReport.axis[ind] = map(analogRead(54+ind), 0, 1023, -32768,32767 );
 	}
 	sendJoyReport(&joyReport);
+//	delay(20);
 }
