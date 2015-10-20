@@ -58,24 +58,28 @@
  */
 typedef struct {
     int16_t axis[8]; 
+#if HID_INTERFACENUMBER == 1
+    uint8_t button[32];  // each byte represent 8 button state
+#else
     uint8_t button[16];  // each byte represent 8 button state
+#endif
 } USB_Joystick1Report_Data_t;
 		
 typedef struct {
     uint8_t button[16];  // each byte represent 8 button state
 } USB_Joystick2Report_Data_t;
-/* Macros: */
-/** LED mask for the library LED driver, to indicate TX activity. */
-#define LEDMASK_TX               LEDS_LED1
-
-/** LED mask for the library LED driver, to indicate RX activity. */
-#define LEDMASK_RX               LEDS_LED2
-
-/** LED mask for the library LED driver, to indicate that an error has occurred in the USB interface. */
-#define LEDMASK_ERROR            (LEDS_LED1 | LEDS_LED2)
-
-/** LED mask for the library LED driver, to indicate that the USB interface is busy. */
-#define LEDMASK_BUSY             (LEDS_LED1 | LEDS_LED2)		
+///* Macros: */
+///** LED mask for the library LED driver, to indicate TX activity. */
+//#define LEDMASK_TX               LEDS_LED1
+//
+///** LED mask for the library LED driver, to indicate RX activity. */
+//#define LEDMASK_RX               LEDS_LED2
+//
+///** LED mask for the library LED driver, to indicate that an error has occurred in the USB interface. */
+//#define LEDMASK_ERROR            (LEDS_LED1 | LEDS_LED2)
+//
+///** LED mask for the library LED driver, to indicate that the USB interface is busy. */
+//#define LEDMASK_BUSY             (LEDS_LED1 | LEDS_LED2)		
 
 /* Function Prototypes: */
 void SetupHardware(void);

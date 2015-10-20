@@ -72,14 +72,21 @@
 
 /** Circular buffer to hold data from the serial port before it is sent to the host. */
 RingBuffer_t USARTtoUSB_Buffer;
+#if HID_INTERFACENUMBER == 1
+const uint8_t BufferSize = sizeof(USB_Joystick1Report_Data_t ); 
+uint8_t USARTtoUSB_BufferStorage[ sizeof(USB_Joystick1Report_Data_t ) ];
+uint8_t prevBufferData[ sizeof(USB_Joystick1Report_Data_t )];
+#elif HID_INTERFACENUMBER == 2
 const uint8_t BufferSize = sizeof(USB_Joystick1Report_Data_t ) + sizeof( USB_Joystick2Report_Data_t);
 uint8_t USARTtoUSB_BufferStorage[ sizeof(USB_Joystick1Report_Data_t ) + sizeof( USB_Joystick2Report_Data_t) ];
 uint8_t prevBufferData[ sizeof(USB_Joystick1Report_Data_t ) + sizeof( USB_Joystick2Report_Data_t)];
+#endif
 
 
 void Joystick1_Task(void);
+#if HID_INTERFACENUMBER > 1
 void Joystick2_Task(void);
-
+#endif
 
 static uint16_t IdleCount, IdleRemaining;
 static bool UsingReportProtocol = true;
@@ -98,7 +105,9 @@ int main(void)
 
     	for (;;) {
 		Joystick1_Task();
+#if HID_INTERFACENUMBER > 1
 		Joystick2_Task();
+#endif
 		USB_USBTask();
 	}
 }
@@ -132,8 +141,9 @@ void EVENT_USB_Device_Disconnect(void)
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
      Endpoint_ConfigureEndpoint(ENDPOINT_DIR_IN | JOYSTICK1_EPNUM, EP_TYPE_INTERRUPT, JOYSTICK_EPSIZE, 1);
-
+#if HID_INTERFACENUMBER > 1
      Endpoint_ConfigureEndpoint(ENDPOINT_DIR_IN | JOYSTICK2_EPNUM, EP_TYPE_INTERRUPT, JOYSTICK_EPSIZE, 1);
+#endif
 
     USB_Device_EnableSOFEvents();
 }
@@ -167,23 +177,25 @@ void EVENT_USB_Device_ControlRequest(void)
 
                         /* Determine if it is the joystick1 or 2 data that is being requested */
                         switch (USB_ControlRequest.wIndex)
-        		{
-        		case 0:
-                                //ReportData = (uint8_t*)&joy1Report;
-        			ReportData = USARTtoUSB_BufferStorage;
-                                ReportSize = sizeof(USB_Joystick1Report_Data_t);
-        			break;
-        		case 1:
-                                //ReportData = (uint8_t*)&joy2Report;
-        			ReportData = USARTtoUSB_BufferStorage + sizeof(USB_Joystick1Report_Data_t);
-                                ReportSize = sizeof(USB_Joystick2Report_Data_t);
-        			break;
-        		
-        		default:
-                                ReportData = USARTtoUSB_BufferStorage;
-                                ReportSize = sizeof(USB_Joystick1Report_Data_t);
-        			break;
-        		}
+        				{
+        				case 0:
+                			//ReportData = (uint8_t*)&joy1Report;
+        					ReportData = USARTtoUSB_BufferStorage;
+                		   	ReportSize = sizeof(USB_Joystick1Report_Data_t);
+        					break;
+#if HID_INTERFACENUMBER > 1
+        				case 1:
+                		    //ReportData = (uint8_t*)&joy2Report;
+        					ReportData = USARTtoUSB_BufferStorage + sizeof(USB_Joystick1Report_Data_t);
+                		    ReportSize = sizeof(USB_Joystick2Report_Data_t);
+        					break;
+#endif
+        				
+        				default:
+                		    ReportData = USARTtoUSB_BufferStorage;
+                		    ReportSize = sizeof(USB_Joystick1Report_Data_t);
+        					break;
+        				}
                         /* Write the report data to the control endpoint */
                         Endpoint_Write_Control_Stream_LE(ReportData, ReportSize);
                         Endpoint_ClearOUT();
@@ -220,18 +232,18 @@ void Joystick1_Task(void)
         if (USB_DeviceState != DEVICE_STATE_Configured)
           return;
 
-        /* Select the Mouse Report Endpoint */
+        /* Select the Report Endpoint */
         Endpoint_SelectEndpoint(ENDPOINT_DIR_IN | JOYSTICK1_EPNUM);
 
-	bool IdleElapsed = false;
+		bool IdleElapsed = false;
         /* Check if idle time defined by HOST has elapsed*/
-	if (IdleCount > 0 && IdleRemaining == 0 )
-	{
-		//The idle time has elapsed,reset the idleRemaining
-		IdleRemaining = IdleCount;
-		IdleElapsed = true;	
-	
-	}
+		if (IdleCount > 0 && IdleRemaining == 0 )
+		{
+			//The idle time has elapsed,reset the idleRemaining
+			IdleRemaining = IdleCount;
+			IdleElapsed = true;	
+		
+		}
 
         if (Endpoint_IsINReady() && ( memcmp( prevBufferData, USARTtoUSB_BufferStorage, sizeof(USB_Joystick1Report_Data_t)) != 0 || IdleElapsed ) ) 
         {
@@ -245,6 +257,7 @@ void Joystick1_Task(void)
         }
 }
 
+#if HID_INTERFACENUMBER > 1
 void Joystick2_Task(void)
 {
         /* Device must be connected and configured for the task to run */
@@ -278,6 +291,7 @@ void Joystick2_Task(void)
 		memcpy( prevBufferData +sizeof( USB_Joystick1Report_Data_t), USARTtoUSB_BufferStorage+sizeof( USB_Joystick1Report_Data_t), sizeof ( USB_Joystick2Report_Data_t ) );
         }
 }
+#endif	//HID_INTERFACENUMBER > 1
 
 
 

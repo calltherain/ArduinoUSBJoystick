@@ -52,10 +52,12 @@
 			USB_Descriptor_Configuration_Header_t Config;
 			USB_Descriptor_Interface_t            HID_Interface1;
 			USB_HID_Descriptor_HID_t              HID_Joystick1HID;
-	        	USB_Descriptor_Endpoint_t             HID_J1_ReportINEndpoint;
+        	USB_Descriptor_Endpoint_t             HID_J1_ReportINEndpoint;
+#if HID_INTERFACENUMBER == 2
 			USB_Descriptor_Interface_t            HID_Interface2;
 			USB_HID_Descriptor_HID_t              HID_Joystick2HID;
-	        	USB_Descriptor_Endpoint_t             HID_J2_ReportINEndpoint;
+        	USB_Descriptor_Endpoint_t             HID_J2_ReportINEndpoint;
+#endif
 		} USB_Descriptor_Configuration_t;
 
 	/* Macros: */
@@ -64,7 +66,11 @@
 		#define JOYSTICK2_EPNUM               2
 
 		/** Size in bytes of the Joystick HID reporting IN endpoint. */
+#if HID_INTERFACENUMBER == 2
 		#define JOYSTICK_EPSIZE              32
+#elif HID_INTERFACENUMBER == 1
+		#define JOYSTICK_EPSIZE              64
+#endif
 
 	/* Function Prototypes: */
 		uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,

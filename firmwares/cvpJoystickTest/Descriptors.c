@@ -72,17 +72,26 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM Joystick1Report[] =
 	/* 128 buttons, value 0=off, 1=on */
 	0x05, 0x09,          /*   Usage Page (Button)                              */
 	0x19, 1,             /*     Usage Minimum (Button 1)                       */
+#if HID_INTERFACENUMBER == 1
+	0x2A, 0x00, 0x01,    /*     Usage Maximum (Button 256 )                      */
+#else
 	0x29, 128,            /*     Usage Maximum (Button 128 )                      */
+#endif
 	0x15, 0x00,          /*   Logical Minimum (0)                              */
 	0x25, 0x01,          /*   Logical Maximum (1)                              */
 	0x35, 0x00,          /*   Physical Minimum (0)                              */
 	0x45, 0x01,          /*   Physical Maximum (1)                              */
 	0x75, 1,             /*   Report Size (1)                                  */
+#if HID_INTERFACENUMBER == 1
+	0x96, 0x00, 0x01,    /*   Report Count (256)                                */
+#else
 	0x95, 128,            /*   Report Count (128)                                */
+#endif
 	0x81, 0x02,          /*   Input (Data, Variable, Absolute)                 */
 	0xc0                 /* End Collection                                     */
 };
 
+#if HID_INTERFACENUMBER > 1
 const USB_Descriptor_HIDReport_Datatype_t PROGMEM Joystick2Report[] =
 {
 	0x05, 0x01,          /* Usage Page (Generic Desktop)                       */
@@ -102,6 +111,7 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM Joystick2Report[] =
 	0x81, 0x02,          /*   Input (Data, Variable, Absolute)                 */
 	0xc0                 /* End Collection                                     */
 };
+#endif
 
 /** Device descriptor structure. This descriptor, located in FLASH memory, describes the overall
  *  device characteristics, including the supported USB version, control endpoint size and the
@@ -142,7 +152,8 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			.Header                 = {.Size = sizeof(USB_Descriptor_Configuration_Header_t), .Type = DTYPE_Configuration},
 
 			.TotalConfigurationSize = sizeof(USB_Descriptor_Configuration_t),
-			.TotalInterfaces        = 2,
+
+			.TotalInterfaces        = HID_INTERFACENUMBER,
 				
 			.ConfigurationNumber    = 1,
 			.ConfigurationStrIndex  = NO_DESCRIPTOR,
@@ -184,10 +195,10 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			
 			.EndpointAddress        = (ENDPOINT_DIR_IN | JOYSTICK1_EPNUM),
 			.Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-			.EndpointSize           = 32,
+			.EndpointSize           = JOYSTICK_EPSIZE,
 			.PollingIntervalMS      = 0x02
 	},
-
+#if HID_INTERFACENUMBER > 1
 	.HID_Interface2 = 
 	{
 			.Header                 = {.Size = sizeof(USB_Descriptor_Interface_t), .Type = DTYPE_Interface},
@@ -220,9 +231,10 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 			
 			.EndpointAddress        = (ENDPOINT_DIR_IN | JOYSTICK2_EPNUM),
 			.Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-			.EndpointSize           = 32,
+			.EndpointSize           = JOYSTICK_EPSIZE,
 			.PollingIntervalMS      = 0x02
 	},
+#endif
 
 };
 
@@ -276,12 +288,14 @@ const USB_Descriptor_String_t PROGMEM HID1InterfaceDescriptor=
 };
 
 /* */
+#if HID_INTERFACENUMBER > 1
 const USB_Descriptor_String_t PROGMEM HID2InterfaceDescriptor=
 {
 	.Header                 = {.Size = USB_STRING_LEN(4), .Type = DTYPE_String},
 		
 	.UnicodeString          = L"002"
 };
+#endif
 
 /** This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
  *  documentation) by the application code so that the address and size of a requested descriptor can be given
@@ -332,10 +346,12 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 					Address = (void*)&HID1InterfaceDescriptor;
 					Size 	= pgm_read_byte(&HID1InterfaceDescriptor.Header.Size);
 					break;
+#if HID_INTERFACENUMBER > 1
 				case 0x05:
 					Address = (void*)&HID2InterfaceDescriptor;
 					Size 	= pgm_read_byte(&HID2InterfaceDescriptor.Header.Size);
 					break;
+#endif
 
 			}
 			
@@ -347,10 +363,12 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick1HID;
 				Size    = sizeof(USB_HID_Descriptor_HID_t);
 				break;
+#if HID_INTERFACENUMBER > 1
 			case 1:
 				Address = (void*)&ConfigurationDescriptor.HID_Joystick2HID;
 				Size    = sizeof(USB_HID_Descriptor_HID_t);
 				break;
+#endif
 			}
 			break;
 		case HID_DTYPE_Report: 
@@ -360,10 +378,12 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
 				Address = (void*)&Joystick1Report;
 				Size    = sizeof(Joystick1Report);
 				break;
+#if HID_INTERFACENUMBER > 1
 			case 1:
 				Address = (void*)&Joystick2Report;
 				Size    = sizeof(Joystick2Report);
 				break;
+#endif
 			}
 			break;
 	}
